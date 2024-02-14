@@ -11,10 +11,11 @@ import {AboutdialogComponent} from './aboutdialog/aboutdialog.component'
 interface Job {
   arrivalTime: number;
   burstTime: number;
-  startTime?: number;
-  endTime?: number;
-  turnaroundTime?: number;
+  startTime?: number | any;
+  endTime?: number | any;
+  turnaroundTime?: number | any;
 }
+
 
 
 @Component({
@@ -23,11 +24,12 @@ interface Job {
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'scheduler';
+  title = 'demo';
   numberOfJobs: number = 0;
   numberOfCPUs: number = 1; // Default to 1 CPU
   jobs: Job[] = [];
   algo: string = ""
+  Process: any
   averageTurnaroundTime: number = 0;
 
   constructor(public dialog: MatDialog) {}
@@ -48,87 +50,109 @@ export class AppComponent {
 
 
   private calculateFCFSSchedule() {
-    // Sort jobs by arrival time (FCFS)
-    const sortedJobs = this.jobs.slice(0);
-    sortedJobs.sort((a, b) => a.arrivalTime - b.arrivalTime);
+    // Create a copy of the jobs array to avoid modifying the original array
+    const jobsCopy = [...this.jobs];
+    
+    // Sort the copied jobs based on arrival time
+    jobsCopy.sort((a, b) => a.arrivalTime - b.arrivalTime);
   
-    // Initialize CPUs
-    const CPUs: Job[][] = [];
+    // Initialize start time and end time for each job
+    const cpuQueues: Job[][] = [];
     for (let i = 0; i < this.numberOfCPUs; i++) {
-      CPUs.push([]);
+      cpuQueues.push([]);
     }
   
-    // Distribute jobs to CPUs in a round-robin manner
-    let currentCPU = 0;
-    sortedJobs.forEach(job => {
-      CPUs[currentCPU].push(job);
-      currentCPU = (currentCPU + 1) % this.numberOfCPUs;
-    });
+    // Initialize current time
+    let currentTime = 0;
   
-    // Calculate schedule for each CPU independently
-    let totalTurnaroundTime = 0;
-    let totalCompletedJobs = 0;
-    for (const CPU of CPUs) {
-      let currentTime = 0;
-      CPU.forEach(job => {
-        job.startTime = Math.max(currentTime, job.arrivalTime);
-        job.endTime = job.startTime + job.burstTime;
-        job.turnaroundTime = job.endTime - job.arrivalTime;
-        currentTime = job.endTime;
-        totalTurnaroundTime += job.turnaroundTime;
-        totalCompletedJobs++; // Increment the completed jobs counter
-      });
+    // Iterate through each job
+    for (const job of jobsCopy) {
+      // Find the CPU with the earliest available time
+      let earliestEndTime = Number.MAX_SAFE_INTEGER;
+      let earliestCPUIndex = 0;
+  
+      // Iterate through each CPU to find the earliest end time
+      for (let i = 0; i < cpuQueues.length; i++) {
+        const lastJobEndTime = cpuQueues[i].length > 0 ? cpuQueues[i][cpuQueues[i].length - 1].endTime : 0;
+        if (lastJobEndTime < earliestEndTime) {
+          earliestEndTime = lastJobEndTime;
+          earliestCPUIndex = i;
+        }
+      }
+  
+      // If no jobs are running on any CPU, start the job immediately
+      if (earliestEndTime === Number.MAX_SAFE_INTEGER) {
+        currentTime = job.arrivalTime;
+      } else {
+        // Otherwise, start the job after the earliest available time
+        currentTime = Math.max(earliestEndTime, job.arrivalTime);
+      }
+  
+      // Assign start time
+      job.startTime = currentTime;
+  
+      // Update end time
+      job.endTime = job.startTime + job.burstTime;
+  
+      // Calculate turnaround time
+      job.turnaroundTime = job.endTime - job.arrivalTime;
+  
+      // Add the job to the CPU queue
+      cpuQueues[earliestCPUIndex].push(job);
     }
   
-    // Calculate average turnaround time only if there are completed jobs
-    if (totalCompletedJobs > 0) {
-      this.averageTurnaroundTime = totalTurnaroundTime / totalCompletedJobs;
-    } else {
-      this.averageTurnaroundTime = 0; // Set to 0 if there are no completed jobs
-    }
+    // Calculate average turnaround time
+    const totalTurnaroundTime = jobsCopy.reduce((acc, job) => acc + job.turnaroundTime, 0);
+    this.averageTurnaroundTime = totalTurnaroundTime / jobsCopy.length;
   }
   
-  
-
   private calculateSJFSchedule() {
-    // Sort jobs by burst time (SJF)
-    const sortedJobs = this.jobs.slice(0);
-    sortedJobs.sort((a, b) => a.burstTime - b.burstTime);
+    // Create a copy of the jobs array to avoid modifying the original array
+    const jobsCopy = [...this.jobs];
   
-    // Initialize CPUs
-    const CPUs: Job[][] = [];
+    // Initialize start time and end time for each job
+    const cpuQueues: Job[][] = [];
     for (let i = 0; i < this.numberOfCPUs; i++) {
-      CPUs.push([]);
+      cpuQueues.push([]);
     }
   
-    // Distribute jobs to CPUs in a round-robin manner
-    let currentCPU = 0;
-    sortedJobs.forEach(job => {
-      CPUs[currentCPU].push(job);
-      currentCPU = (currentCPU + 1) % this.numberOfCPUs;
-    });
+    // Iterate through each job
+    while (jobsCopy.length > 0) {
+      // Find the CPU with the earliest available time
+      let earliestEndTime = Number.MAX_SAFE_INTEGER;
+      let earliestCPUIndex = 0;
+      for (let i = 0; i < cpuQueues.length; i++) {
+        const lastJobEndTime = cpuQueues[i].length > 0 ? cpuQueues[i][cpuQueues[i].length - 1].endTime : 0;
+        if (lastJobEndTime < earliestEndTime) {
+          earliestEndTime = lastJobEndTime;
+          earliestCPUIndex = i;
+        }
+      }
   
-    // Calculate schedule for each CPU independently
-    let totalTurnaroundTime = 0;
-    let totalCompletedJobs = 0;
-    for (const CPU of CPUs) {
-      let currentTime = 0;
-      CPU.forEach(job => {
-        job.startTime = Math.max(currentTime, job.arrivalTime);
-        job.endTime = job.startTime + job.burstTime;
-        job.turnaroundTime = job.endTime - job.arrivalTime;
-        currentTime = job.endTime;
-        totalTurnaroundTime += job.turnaroundTime;
-        totalCompletedJobs++; // Increment the completed jobs counter
-      });
+      // Filter jobs that have arrived and have not been assigned to a CPU
+      const availableJobs = jobsCopy.filter(job => job.arrivalTime <= earliestEndTime);
+  
+      // Sort available jobs based on burst time (shortest remaining burst time first)
+      availableJobs.sort((a, b) => a.burstTime - b.burstTime);
+  
+      // Assign the shortest job to the CPU
+      const shortestJob = availableJobs.shift();
+      if (shortestJob) {
+        shortestJob.startTime = Math.max(earliestEndTime, shortestJob.arrivalTime);
+        shortestJob.endTime = shortestJob.startTime + shortestJob.burstTime;
+        shortestJob.turnaroundTime = shortestJob.endTime - shortestJob.arrivalTime;
+        cpuQueues[earliestCPUIndex].push(shortestJob);
+        // Remove the assigned job from the jobs array
+        const index = jobsCopy.findIndex(job => job === shortestJob);
+        if (index !== -1) {
+          jobsCopy.splice(index, 1);
+        }
+      }
     }
   
-    // Calculate average turnaround time only if there are completed jobs
-    if (totalCompletedJobs > 0) {
-      this.averageTurnaroundTime = totalTurnaroundTime / totalCompletedJobs;
-    } else {
-      this.averageTurnaroundTime = 0; // Set to 0 if there are no completed jobs
-    }
+    // Calculate average turnaround time
+    const totalTurnaroundTime = this.jobs.reduce((acc, job) => acc + job.turnaroundTime, 0);
+    this.averageTurnaroundTime = totalTurnaroundTime / this.jobs.length;
   }
   
 
