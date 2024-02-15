@@ -127,6 +127,7 @@ export class AppComponent {
 private calculateSJFSchedule() {
   // Create a copy of the jobs array to avoid modifying the original array
   const jobsCopy = [...this.jobs];
+  jobsCopy.sort((a, b) => a.arrivalTime - b.arrivalTime);
 
   // Initialize start time and end time for each job
   const ganttChartData: any[] = [];
