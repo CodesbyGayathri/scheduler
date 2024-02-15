@@ -17,6 +17,7 @@
       <button (click)="calculateSchedule('FCFS')">Calculate FCFS Schedule</button>
       <button (click)="calculateSchedule('SJF')">Calculate SJF Schedule</button>
     </div>
+
     <div style="margin: 20px">
     <table>
       <thead>
@@ -63,7 +64,15 @@
       </div>
     </div>
   </div>
+  <br>
+  <mat-card *ngIf="visible" style="margin: 20px; text-align: center;">
+  <div class="container">
+    <app-gantt-chart [data]="ganttChartData"></app-gantt-chart>
+  </div>
+  </mat-card>
+  <br>
  
 </div>
+
 
 <router-outlet />

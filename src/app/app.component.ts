@@ -6,33 +6,38 @@ import {
   MatDialogContent,
   MatDialogTitle,
 } from '@angular/material/dialog';
-import {AboutdialogComponent} from './aboutdialog/aboutdialog.component'
+import { AboutdialogComponent } from './aboutdialog/aboutdialog.component';
 
 interface Job {
   arrivalTime: number;
   burstTime: number;
-  startTime?: number | any;
+  startTime?: number;
   endTime?: number | any;
   turnaroundTime?: number | any;
+  cpu?: number;
+  
 }
-
-
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  styleUrls: ['./app.component.css']
 })
 export class AppComponent {
   title = 'demo';
   numberOfJobs: number = 0;
   numberOfCPUs: number = 1; // Default to 1 CPU
   jobs: Job[] = [];
-  algo: string = ""
-  Process: any
+  algo: string = "";
+  Process: any;
+  visible: boolean = false;
+  ganttChartDataa: any[] = [];
   averageTurnaroundTime: number = 0;
+  ganttChartData: any[] = []; // Declare the ganttChartData array
 
   constructor(public dialog: MatDialog) {}
+
+
 
   openDialog() {
     this.dialog.open(AboutdialogComponent);
@@ -41,13 +46,12 @@ export class AppComponent {
   calculateSchedule(algorithm: string) {
     if (algorithm === 'FCFS') {
       this.calculateFCFSSchedule();
-      this.algo = 'FCFS'
+      this.algo = 'FCFS';
     } else if (algorithm === 'SJF') {
-      this.algo = 'SJF'
+      this.algo = 'SJF';
       this.calculateSJFSchedule();
     }
   }
-
 
   private calculateFCFSSchedule() {
     // Create a copy of the jobs array to avoid modifying the original array
@@ -65,6 +69,9 @@ export class AppComponent {
     // Initialize current time
     let currentTime = 0;
   
+    // Initialize ganttChartData
+    const ganttChartData: any[] = [];
+
     // Iterate through each job
     for (const job of jobsCopy) {
       // Find the CPU with the earliest available time
@@ -96,25 +103,36 @@ export class AppComponent {
   
       // Calculate turnaround time
       job.turnaroundTime = job.endTime - job.arrivalTime;
-  
+
       // Add the job to the CPU queue
       cpuQueues[earliestCPUIndex].push(job);
+
+      // Add the job information to ganttChartData
+      ganttChartData.push({
+        job: `J${this.jobs.indexOf(job) + 1}`,
+        startTime: job.startTime,
+        endTime: job.endTime,
+        cpu: `CPU ${earliestCPUIndex + 1}`,
+      });
     }
   
     // Calculate average turnaround time
     const totalTurnaroundTime = jobsCopy.reduce((acc, job) => acc + job.turnaroundTime, 0);
     this.averageTurnaroundTime = totalTurnaroundTime / jobsCopy.length;
-  }
+    this.ganttChartData = ganttChartData; // Assign the generated ganttChartData
+    this.visible = ganttChartData.length > 0;
+}
+
+
   
   private calculateSJFSchedule() {
     // Create a copy of the jobs array to avoid modifying the original array
     const jobsCopy = [...this.jobs];
   
     // Initialize start time and end time for each job
-    const cpuQueues: Job[][] = [];
-    for (let i = 0; i < this.numberOfCPUs; i++) {
-      cpuQueues.push([]);
-    }
+    const ganttChartData: any[] = [];
+    const cpuQueues: Job[][] = Array.from({ length: this.numberOfCPUs }, () => []);
+    let currentTime = 0;
   
     // Iterate through each job
     while (jobsCopy.length > 0) {
@@ -141,6 +159,8 @@ export class AppComponent {
         shortestJob.startTime = Math.max(earliestEndTime, shortestJob.arrivalTime);
         shortestJob.endTime = shortestJob.startTime + shortestJob.burstTime;
         shortestJob.turnaroundTime = shortestJob.endTime - shortestJob.arrivalTime;
+        shortestJob.cpu = earliestCPUIndex + 1;
+        ganttChartData.push({ job: `J${this.jobs.indexOf(shortestJob) + 1}`, startTime: shortestJob.startTime, endTime: shortestJob.endTime, cpu: `CPU ${shortestJob.cpu}`  });
         cpuQueues[earliestCPUIndex].push(shortestJob);
         // Remove the assigned job from the jobs array
         const index = jobsCopy.findIndex(job => job === shortestJob);
@@ -153,8 +173,10 @@ export class AppComponent {
     // Calculate average turnaround time
     const totalTurnaroundTime = this.jobs.reduce((acc, job) => acc + job.turnaroundTime, 0);
     this.averageTurnaroundTime = totalTurnaroundTime / this.jobs.length;
-  }
+    this.ganttChartData = ganttChartData; // Assign the generated ganttChartData
   
+    this.visible = ganttChartData.length > 0;
+  }
 
   addJob() {
     this.jobs.push({ arrivalTime: 0, burstTime: 0 });

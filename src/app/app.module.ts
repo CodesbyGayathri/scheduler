@@ -9,12 +9,15 @@ import { MatDialogModule } from '@angular/material/dialog';
 import {MatButtonModule} from '@angular/material/button';
 import {MatTableModule} from '@angular/material/table';
 import {MatToolbarModule} from '@angular/material/toolbar';
+import { GanttChartComponent } from './gantt-chart/gantt-chart.component';
+import {MatCardModule} from '@angular/material/card';
 
 @NgModule({
   declarations: [
     AppComponent,
     AboutdialogComponent,
-    NumericDirective
+    NumericDirective,
+    GanttChartComponent
   ],
   imports: [
     BrowserModule,
@@ -23,7 +26,8 @@ import {MatToolbarModule} from '@angular/material/toolbar';
     MatButtonModule,
     MatTableModule,
     MatToolbarModule,
-    MatDialogModule
+    MatDialogModule,
+    MatCardModule
   ],
   providers: [],
   bootstrap: [AppComponent]
